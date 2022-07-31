@@ -248,6 +248,21 @@ impl pallet_balances::Config for Runtime {
 	type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
 }
 
+impl pallet_identity::Config for Runtime {
+	type Event = Event;
+	type Currency = Balances;
+	type BasicDeposit = ConstU128<100>;
+	type FieldDeposit = ConstU128<5>;
+	type SubAccountDeposit = ConstU128<1>;
+	type MaxSubAccounts = ConstU32<16>;
+	type MaxAdditionalFields = ConstU32<2>;
+	type MaxRegistrars = ConstU32<32>;
+	type Slashed = ();
+	type ForceOrigin = frame_system::EnsureRoot<AccountId>;
+	type RegistrarOrigin = frame_system::EnsureRoot<AccountId>;
+	type WeightInfo = ();
+}
+
 impl pallet_transaction_payment::Config for Runtime {
 	type Event = Event;
 	type OnChargeTransaction = CurrencyAdapter<Balances, ()>;
@@ -284,6 +299,7 @@ construct_runtime!(
 		Sudo: pallet_sudo,
 		// Include the custom logic from the pallet-template in the runtime.
 		TemplateModule: pallet_template,
+		Identity: pallet_identity,
 	}
 );
 
