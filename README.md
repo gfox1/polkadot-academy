@@ -12,32 +12,33 @@
 
 ## Project Steps
 
+**Adding Identity Pallet**
 1. Clone Substrate Node Template
-2. Add current Identity pallet dependencies to node
-  -  Add pallet dependicies to the runtime - Cargo.toml file
-  - Identity Pallet information: [Source Code](https://github.com/paritytech/substrate/tree/master/frame/identity) & [Documentation](https://paritytech.github.io/substrate/master/pallet_identity/index.html)
-  - Add pallet to the list of features in the cargo.toml file: "pallet-identity/std"
+2. Add current Identity pallet to the runtime dependices
+    - Add pallet dependicies to the runtime - Cargo.toml file
+    - Identity Pallet information: [Source Code](https://github.com/paritytech/substrate/tree/master/frame/identity) & [Documentation](https://paritytech.github.io/substrate/master/pallet_identity/index.html)
+    - Add pallet to the list of features in the cargo.toml file: "pallet-identity/std"
 3. Configure the Identity pallet
-- [Confiduration Documents](https://paritytech.github.io/substrate/master/pallet_identity/pallet/trait.Config.html)
-- Or look at pallet [src code](https://github.com/paritytech/substrate/blob/master/frame/identity/src/lib.rs) under "pub trait Config"
+    - [Confiduration Documents](https://paritytech.github.io/substrate/master/pallet_identity/pallet/trait.Config.html)
+    - Or look at pallet [src code](https://github.com/paritytech/substrate/blob/master/frame/identity/src/lib.rs) under "pub trait Config"
 4. Add configuration to runtime file
--  Open: runtime/src/lib.rs
-- Add impl block for identity pallet
+    -  Open: runtime/src/lib.rs
+    - Add impl block for identity pallet
 
 ```sh
-			impl pallet_identity::Config for Runtime {
-			    type Event = Event;
-			    type Currency = Balances;
-			    type BasicDeposit = ConstU128<100>;
-			    type FieldDeposit = ConstU128<5>;
-			    type SubAccountDeposit = ConstU128<1>;
-			    type MaxSubAccounts = ConstU32<16>;
-			    type MaxAdditionalFields = ConstU32<2>;
-			    type MaxRegistrars = ConstU32<32>;
-			    type Slashed = ();
-			    type ForceOrigin = frame_system::EnsureRoot<AccountId>;
-			    type RegistrarOrigin = frame_system::EnsureRoot<AccountId>;
-			    type WeightInfo = ();
+impl pallet_identity::Config for Runtime {
+  type Event = Event;
+	type Currency = Balances;
+	type BasicDeposit = ConstU128<100>;
+	type FieldDeposit = ConstU128<5>;
+	type SubAccountDeposit = ConstU128<1>;
+	type MaxSubAccounts = ConstU32<16>;
+	type MaxAdditionalFields = ConstU32<2>;
+	type MaxRegistrars = ConstU32<32>;
+	type Slashed = ();
+	type ForceOrigin = frame_system::EnsureRoot<AccountId>;
+	type RegistrarOrigin = frame_system::EnsureRoot<AccountId>;
+	type WeightInfo = ();
 			}
 
 ```
@@ -45,10 +46,13 @@
 
 
 ```sh
-    Identity: pallet_identity,
+  Identity: pallet_identity,
 ```
+<br>
 
+**Quadratic Voting Pallet**
 
+1. 
 ## Build and Run the Project
 
 
