@@ -52,7 +52,11 @@ impl pallet_identity::Config for Runtime {
 
 **Quadratic Voting Pallet**
 
-1. 
+1. Update name of template to "quadratic-voting" in repository
+2. 
+
+
+
 ## Build and Run the Project
 
 

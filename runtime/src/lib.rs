@@ -277,8 +277,8 @@ impl pallet_sudo::Config for Runtime {
 	type Call = Call;
 }
 
-/// Configure the pallet-template in pallets/template.
-impl pallet_template::Config for Runtime {
+/// Configure the pallet-quadratic-voting in pallets.
+impl pallet_quadratic_voting::Config for Runtime {
 	type Event = Event;
 }
 
@@ -297,8 +297,8 @@ construct_runtime!(
 		Balances: pallet_balances,
 		TransactionPayment: pallet_transaction_payment,
 		Sudo: pallet_sudo,
-		// Include the custom logic from the pallet-template in the runtime.
-		TemplateModule: pallet_template,
+		// Include the custom logic from the pallet-quadratic-voting in the runtime.
+		QuadraticVoting: pallet_quadratic_voting,
 		Identity: pallet_identity,
 	}
 );
