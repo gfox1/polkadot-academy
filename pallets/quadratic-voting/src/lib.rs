@@ -73,7 +73,7 @@ pub mod pallet {
 	#[pallet::getter(fn proposal_info)]
 	
 	pub type Proposals<T: Config> = StorageMap<_, Blake2_128Concat, u32, 
-	ProposalInfo<<T as frame_system::Config>::AccountId, BoundedVec<u8, T::NameMaxLength>>,>;
+	Proposal<<T as frame_system::Config>::AccountId, BoundedVec<u8, T::NameMaxLength>>,>;
 
 
 	#[pallet::storage]
@@ -127,9 +127,7 @@ pub mod pallet {
 	#[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
 
-	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
-	// These functions materialize as "extrinsics", which are often compared to transactions.
-	// Dispatchable functions must be annotated with a weight and must return a DispatchResult.
+	// TODO: Add functions
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		/// An example dispatchable that takes a singles value as a parameter, writes the value to

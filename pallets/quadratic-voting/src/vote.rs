@@ -1,3 +1,9 @@
+//! Somthing I was trying out
+//! I wanted to move all of the voting elements to a seperate file to not pollute the lib.rs file.
+//! I think this is a good idea, but I'm not sure if it will work.
+//! Leaving in for now until I understand if I can/should keep everything in the lib.rs file.
+
+
 use scale_info::TypeInfo;
 use codec::{Encode, Decode};
 use frame_support::RuntimeDebug;
