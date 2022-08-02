@@ -50,10 +50,19 @@ impl pallet_identity::Config for Runtime {
 ```
 <br>
 
+
+**Bring in Balances Pallet**
+1. Add dependencies to Cargo.toml 
+		- Add under dependencies and features sections
+
 **Quadratic Voting Pallet**
 
 1. Update name of template to "quadratic-voting" in repository
-2. 
+2. Removed the quadratic-voting/src/benchmarking.rs file - not needed for assignment
+3. Updating quadratic-voting/src/lib.rs file to include logic for quadratic voting
+		- 
+
+4. Added vote.rs file to include vote data types
 
 
 

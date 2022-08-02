@@ -1,6 +1,13 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
+
+use codec::MaxEncodedLen;
+use frame_support::{ codec::{Decode, Encode}, traits::{Currency, EnsureOrigin, Get, ReservableCurrency}, BoundedVec, PalletId,};
 pub use pallet::*;
+use scale_info::TypeInfo;
+use sp_runtime::traits::{AccountIdConversion, Hash};
+use sp_runtime::RuntimeDebug;
+use sp_std::{convert::TryInto, vec, vec::Vec};
 
 #[cfg(test)]
 mod mock;
@@ -8,7 +15,25 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
+#[derive(Encode, Decode, Clone, Eq, PartialEq, TypeInfo, MaxEncodedLen, RuntimeDebug)]
+pub struct Proposal<AccountId, BoundedString> {
+    pub proposal_hash: Hash,
+	pub total_votes: u128,
+    pub quadratic_amount: u128,
+    pub name: BoundedString,
+    pub owner: AccountId,
+}
 
+
+#[derive(Encode, Decode, Clone, Eq, PartialEq, TypeInfo, MaxEncodedLen, RuntimeDebug)]
+pub struct VotingRound<AccountId, BoundedString> {
+    pub name: BoundedString,
+    pub ongoing: bool,
+    pub admin: AccountId,
+}
+
+type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
+type VoteBalance<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
 
 #[frame_support::pallet]
@@ -16,33 +41,54 @@ pub mod pallet {
 	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
 	use sp_std::*;
+	use frame_support::traits::{Currency, ReservableCurrency};
+
 
 	// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
-	
+		
+		
 		// The standard event type
-		type Event: From<Event<Self>> + Into<<Self as frame_system::Config>::Event>;
+		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+		// Bring in currency and reservable currency - https://docs.rs/frame-support/latest/frame_support/traits/trait.ReservableCurrency.html
+		type Currency: ReservableCurrency<Self::AccountId> + Currency<Self::AccountId>;
 
+		#[pallet::constant]
+        type PalletId: Get<Self::PalletId>;
 
+		#[pallet::constant]
+		type MaxProposalLength: Get<u32>;
 
 	}
 
+	// Did not add anything to this section
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
 	pub struct Pallet<T>(_);
 
-	// The pallet's runtime storage items.
-	// Use getter methos to access proposal count 
-	// https://docs.substrate.io/main-docs/build/runtime-storage/#:~:text=a%20storage%20item.-,Getter%20methods,-The%20%23%5Bpallet%3A%3Agetter
+
+	// Use getter method to access proposal list
 	#[pallet::storage]
-	#[pallet::getter(fn proposal_count)]
-	pub type ProposalCount<T: Config> = StorageValue<_, u32>; //May need to add a few more items here
+	#[pallet::getter(fn proposal_info)]
+	
+	pub type Proposals<T: Config> = StorageMap<_, Blake2_128Concat, u32, 
+	ProposalInfo<<T as frame_system::Config>::AccountId, BoundedVec<u8, T::NameMaxLength>>,>;
 
 
+	#[pallet::storage]
+	#[pallet::getter(fn proposal_votes)]
+    pub type ProposalVotes<T: Config> = StorageDoubleMap<_, Blake2_128Concat, T::Hash, Blake2_128Concat, T::AccountId, u128>;
 
-	// Pallets use events to inform users when important changes are made.
-	// https://docs.substrate.io/v3/runtime/events-and-errors
+	// Use getter method to access proposal participants
+	#[pallet::storage]
+    #[pallet::getter(fn proposal_participants)]
+    pub(super) type ProposalParticipants<T: Config> = StorageDoubleMap<_, Blake2_128Concat, u32, Blake2_128Concat, T::AccountId, bool>;
+
+	
+
+
+	// Events to inform the user of his action.
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
@@ -74,7 +120,12 @@ pub mod pallet {
 		NotAValidReferendum,
 		// No referendum to vote on
 		NoReferendumToVoteOn,
+		// Not enough tokens to vote on this referendum.
+		NotEnoughTokens,
 	}
+
+	#[pallet::hooks]
+    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
 
 	// Dispatchable functions allows users to interact with the pallet and invoke state changes.
 	// These functions materialize as "extrinsics", which are often compared to transactions.
