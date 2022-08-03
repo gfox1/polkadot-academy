@@ -1,20 +1,49 @@
+//! Added tests for the functions I created in lib.rs
+//! Did not add tests for the functions I created in votes.rs
+//! Did not add tests for the functions I created in quadratic-conviction.rs
+//! Could add test for error handling
+
+
 use crate::{mock::*, Error};
 use frame_support::{assert_noop, assert_ok};
 
 #[test]
-fn it_works_for_default_value() {
+fn create_proposal_works() {
 	new_test_ext().execute_with(|| {
-		// Dispatch a signed extrinsic.
-		assert_ok!(TemplateModule::do_something(Origin::signed(1), 42));
+		assert_ok!(Pallet::propose(Origin::signed(1), "proposal".into()));
 		// Read pallet storage and assert an expected result.
-		assert_eq!(TemplateModule::something(), Some(42));
+		assert_eq!(Pallet::proposals().unwrap(), vec![(1, "proposal".into())]);
 	});
 }
 
 #[test]
-fn correct_error_for_none_value() {
+fn voting_round_starts() {
 	new_test_ext().execute_with(|| {
 		// Ensure the expected error is thrown when no value is present.
-		assert_noop!(TemplateModule::cause_error(Origin::signed(1)), Error::<Test>::NoneValue);
+		assert_noop!(
+			Pallet::start_voting_round(Origin::signed(1), 0),
+			Error::<Test>::NoProposalForReferendum
+		);
+	});
+}
+	// TODO: test that the voting works 
+	// #[test]
+	// fn vote_works() {
+	// 	new_test_ext().execute_with(|| {
+	// 		// Vote for the proposal
+	// 		assert_ok!(Pallet::vote(Origin::signed(1), 1, true));
+	// 		// Read pallet storage and assert an expected result.
+	// 		assert_eq!(Pallet::votes().unwrap(), vec![(1, 1, true)]);
+	// 	});
+	// }
+
+#[test]
+fn end_referendum_works() {
+	new_test_ext().execute_with(|| {
+		// Ensure the expected error is thrown when round ends
+		assert_noop!(
+			Pallet::end_referendum(Origin::signed(1), 0),
+			Error::<Test>::ReferendumAlreadyEnded
+		);
 	});
 }

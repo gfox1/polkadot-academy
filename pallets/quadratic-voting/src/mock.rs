@@ -1,7 +1,6 @@
-//! I originally deleted this file to use the runtime of the entire node as is in the tutorial 
-//! Hoever, after the class tutorial I decided to keep it for testing purposes.
-//! File still needs to be updated
-
+//! I originally deleted this file as is done in the online tutorial and was using the runtime of the entire node 
+//! However, after the in class tutorial I decided to readd the file and use it for testing 
+//! Added balances, Identity and quadratic voting pallets.
 
 use crate as pallet_template;
 use frame_support::traits::{ConstU16, ConstU64};
@@ -24,6 +23,8 @@ frame_support::construct_runtime!(
 	{
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
 		TemplateModule: pallet_template::{Pallet, Call, Storage, Event<T>},
+		Balances: pallet_balances::{Pallet, Call, Storage, Event<T>},
+		Identity: pallet_identity::{Pallet, Call, Storage, Event<T>},
 	}
 );
 
@@ -58,7 +59,36 @@ impl pallet_template::Config for Test {
 	type Event = Event;
 }
 
+
+
+impl pallet_balances::Config for Test {
+	type MaxLocks = ();
+	type Balance = u64;
+	type DustRemoval = ();
+	type Event = Event;
+	type ExistentialDeposit = ();
+	type AccountStore = System;
+	type WeightInfo = ();
+}
+
+impl pallet_identity::Config for Test {
+	type Event = Event;
+}
+
+impl pallet_quadratic_voting::Config for Test {
+	type Event = Event;
+	type ProposalLength = u32;
+	type MaxProposalLength = u32;
+	type ProposalInfo = ProposalInfo;
+	type ProposalVotes = ProposalVotes;
+	type ProposalParticipants = ProposalParticipants;
+	type Proposals = Proposals;
+	type Currency = pallet_balances::Config<Test>;
+}
+
+
 // Build genesis storage according to the mock runtime.
 pub fn new_test_ext() -> sp_io::TestExternalities {
 	system::GenesisConfig::default().build_storage::<Test>().unwrap().into()
+	pallet_quadratic_voting::GenesisConfig::default().build_storage::<Test>().unwrap().into()
 }

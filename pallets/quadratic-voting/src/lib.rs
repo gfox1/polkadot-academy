@@ -1,3 +1,7 @@
+//! Could not get file to compile in the end...
+//! Did not finish all of the funtions
+//! Need to spend mroe time with ti and make sure that i was using each section of this file correctly
+
 #![cfg_attr(not(feature = "std"), no_std)]
 
 
@@ -14,6 +18,11 @@ mod mock;
 
 #[cfg(test)]
 mod tests;
+
+mod votes;
+mod quadratic-conviction;
+
+
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq, TypeInfo, MaxEncodedLen, RuntimeDebug)]
 pub struct Proposal<AccountId, BoundedString> {
@@ -32,6 +41,20 @@ pub struct VotingRound<AccountId, BoundedString> {
     pub admin: AccountId,
 }
 
+#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
+pub struct Votes<AccountId, BlockNumber> {
+	/// The proposal's unique index.
+	index: ProposalIndex,
+	/// The number of approval votes that are needed to pass the motion.
+	threshold: MemberCount,
+	/// The current set of voters that approved it.
+	ayes: Vec<AccountId>,
+	/// The current set of voters that rejected it.
+	nays: Vec<AccountId>,
+	/// The hard end time of this vote.
+	end: BlockNumber,
+}
+
 type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 type VoteBalance<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
@@ -42,7 +65,7 @@ pub mod pallet {
 	use frame_system::pallet_prelude::*;
 	use sp_std::*;
 	use frame_support::traits::{Currency, ReservableCurrency};
-
+}
 
 	// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
@@ -112,6 +135,8 @@ pub mod pallet {
 		ProposalTooShort,
 		/// Error for when a proposal is submitted that is empty.
 		ProposalEmpty,
+		/// Valid account for proposal 
+		ValidAccount,
 		/// Error for when a referendum is started with no proposals.
 		NoProposalForReferendum,
 		// Already voted on this referendum.
@@ -122,49 +147,132 @@ pub mod pallet {
 		NoReferendumToVoteOn,
 		// Not enough tokens to vote on this referendum.
 		NotEnoughTokens,
+		// Referendum already ended.
+		ReferendumAlreadyEnded,
 	}
 
 	#[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {}
 
-	// TODO: Add functions
+
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		/// An example dispatchable that takes a singles value as a parameter, writes the value to
 		/// storage and emits an event. This function must be dispatched by a signed extrinsic.
+		// Left weights as was in example
+
+		/// Create a new proposal
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
-		pub fn do_something(origin: OriginFor<T>, something: u32) -> DispatchResult {
+		pub fn create_proposal(origin: OriginFor<T>, new_proposal: Vec<u32>) -> DispatchResult {
 			// Check that the extrinsic was signed and get the signer.
 			// This function will return an error if the extrinsic is not signed.
-			// https://docs.substrate.io/v3/runtime/origins
 			let who = ensure_signed(origin)?;
 
-			// Update storage.
-			<Something<T>>::put(something);
+			// Check that the account is valid.
+			ensure!(T::PalletId::get().is_signer(who), Error::<T>::ValidAccount);
+			
+			// Check that the proposal is not too long.
+			ensure!(new_proposal.len() <= T::MaxProposalLength::get(), Error::<T>::ProposalTooLong);
+			
+			// Check that the proposal is not too short.
+			ensure!(new_proposal.len() > 0, Error::<T>::ProposalTooShort);
+			
+			// Check that the proposal is not empty.
+			ensure!(new_proposal.len() > 0, Error::<T>::ProposalEmpty);
+						
 
-			// Emit an event.
-			Self::deposit_event(Event::SomethingStored(something, who));
+			// Update storage with new proposal
+			<Proposal<T>>::put(proposal_info::<T>::next_id(), new_proposal);
+
+			// Emit an event - ProposalSubmitted
+			Self::deposit_event(Event::ProposalSubmitted(new_proposal, who));
 			// Return a successful DispatchResultWithPostInfo
 			Ok(())
 		}
 
-		/// An example dispatchable that may throw a custom error.
+		/// Start a voting Round with a given proposal
 		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
-		pub fn cause_error(origin: OriginFor<T>) -> DispatchResult {
+		pub fn start_voting_round(origin: OriginFor<T>, block_numebr: T::BlockNumber) -> DispatchResult {
 			let _who = ensure_signed(origin)?;
 
-			// Read a value from storage.
-			match <Something<T>>::get() {
-				// Return an error if the value has not been set.
-				None => return Err(Error::<T>::NoneValue.into()),
-				Some(old) => {
-					// Increment the value read from storage; will error in the event of overflow.
-					let new = old.checked_add(1).ok_or(Error::<T>::StorageOverflow)?;
-					// Update the value in storage with the incremented result.
-					<Something<T>>::put(new);
-					Ok(())
-				},
+			// Check that the referendum is not already started.
+			if <ReferendumInfo<T>>::get(block_numebr).is_some() {
+				return Err(Error::<T>::NotAValidReferendum.into());
 			}
+			// Check that there is at least one proposal.
+			if <Proposal<T>>::iter().count() == 0 {
+				return Err(Error::<T>::NoProposalForReferendum.into());
+			}
+			let referendum_index = <ReferendumInfo<T>>::next_id();
+			
+			// Update storage with new referendum
+			<ReferendumInfo<T>>::put(referendum_index, ReferendumInfo {
+				end: block_numebr + T::BlockPeriod::get(),
+				proposal_count: <Proposal<T>>::iter().count(),
+			});
+
+			// Emit an event - ReferendumStarted
+			Self::deposit_event(Event::ReferendumStarted(referendum_index, block_numebr));
+
 		}
+
+		/// Vote on a referendum.
+		#[pallet::weight(10_000 + T::DbWeight::get().reads_writes(1,1))]
+		pub fn vote(origin, referendum_index: ReferendumIndex, vote: Vote) -> DispatchResult {
+			let who = ensure_signed(origin)?;
+			// Check that the referendum is valid.
+			ensure!(<ReferendumInfo<T>>::get(referendum_index).is_some(), Error::<T>::NotAValidReferendum);
+			
+			// Check that the referendum is not ended.
+			ensure!(<ReferendumInfo<T>>::get(referendum_index).unwrap().end > <system::Module<T>>::block_number(), Error::<T>::NotAValidReferendum);
+			
+			// Check that the referendum is not already voted on.
+			ensure!(<Votes<T>>::get(&(who, referendum_index)).is_none(), Error::<T>::AlreadyVoted);
+			
+			let referendum_votes = <Votes<T>>::get(&(who, referendum_index)).unwrap_or_default();
+
+			//  TODO: Finish voting logic
+			for vote in vote.iter() {
+				referendum_votes.push(vote.clone());
+			}
+
+			<Votes<T>>::insert(&(who, referendum_index), referendum_votes);
+
+			// Emit an event - VoteCast
+			Self::deposit_event(Event::VoteCast(who, referendum_index, vote));
+
+		}
+
+		/// End a referendum.
+		// Does not need weight as it should end kbased on blocknumber
+		pub fn end_referendum(origin, referendum_index: ReferendumIndex) -> DispatchResult {
+			let _who = ensure_signed(origin)?;
+
+			// Check that the referendum is valid.
+			ensure!(<ReferendumInfo<T>>::get(referendum_index).is_some(), Error::<T>::NotAValidReferendum);
+			
+			// Check that the referendum is not ended.
+			ensure!(<ReferendumInfo<T>>::get(referendum_index).unwrap().end > <system::Module<T>>::block_number(), Error::<T>::NotAValidReferendum);
+			
+			// Check that the referendum is not already voted on.
+			ensure!(<Votes<T>>::get(&(who, referendum_index)).is_none(), Error::<T>::AlreadyVoted);
+			
+			// Check that the referendum is not already ended.
+			ensure!(<ReferendumInfo<T>>::get(referendum_index).unwrap().end > <system::Module<T>>::block_number(), Error::<T>::NotAValidReferendum);
+			
+			// Update storage with new referendum
+			<ReferendumInfo<T>>::put(referendum_index, ReferendumInfo {
+				end: <system::Module<T>>::block_number(),
+				proposal_count: <Proposal<T>>::iter().count(),
+			});
+			// Emit an event - ReferendumEnded
+			Self::deposit_event(Event::ReferendumEnded(referendum_index));
+			// Return a successful DispatchResultWithPostInfo
+			Ok(())
+		}
+
+
 	}
-}
+
+
+

@@ -1,7 +1,7 @@
 //! Somthing I was trying out
 //! I wanted to move all of the voting elements to a seperate file to not pollute the lib.rs file.
-//! I think this is a good idea, but I'm not sure if it will work.
-//! Leaving in for now until I understand if I can/should keep everything in the lib.rs file.
+//! I think this the righti idea, however I was not able to execute on it like I wanted
+//! Leaving in for now until I understand if I can/should keep everything in lib.rs.
 
 
 use scale_info::TypeInfo;

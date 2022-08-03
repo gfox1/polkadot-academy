@@ -1,5 +1,6 @@
-//! I try using reworking stuff from the conviction.rs file from the democracy pallet.
-//! In the end I dont think it worked for my use case, but leaving it in here for now...
+//! I tried reworking a few things from the conviction.rs file from the democracy pallet.
+//! In the end I dont think it worked for my use case and ultimately I decided to move on.
+//! leaving the file for now.
 //! To be removed if lib.rs file is working.
 
 
